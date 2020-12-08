@@ -1,0 +1,343 @@
+#######################################
+         # Write the Start Data to Audit Cube #
+#######################################
+vCube = 'zProcessAudit';
+vProcessName = GetProcessName();
+ExecuteProcess('}aviana_lib_writeprocessrecord_alpha', 'pProcessName', vProcessName);
+
+#### Globals
+vBudCube = 'GL Balances';
+vTgtCube='DOR Summary';
+vTimeFlatDim='t_time_flat';
+vMonthFlatDim='t_month_flat';
+
+nTimeNow=NUMBERTOSTRING(NOW());
+
+vDriverMeasure='Driver';
+
+
+IF (pCompany@='');
+    pCompany='DORMGM';
+ENDIF;
+
+########### Get Current Month and Index
+
+
+# vActualMonth = cellgets('plan control', 'Control', 'Actual Month');
+# vActualMonthIndex = DIMIX('t_time', vActualMonth);
+
+vCurrentYear= cellgets('plan control', 'Control', 'Current Year');
+vPriorYear= cellgets('plan control', 'Control', 'Prior Year');
+
+IF (pday@='');
+
+	## Added By Shirley Lu on 8/1/2017, because DOR is for prior day, use 'actual month', not 'current month' for first day of the month when doing driver calculation
+
+	vCurrDay=cellgets('plan control', 'Control', 'Current Day');
+
+	IF (SUBST(vCurrDay, 9,2)@='01');
+		vCurrentMonth = cellgets('plan control', 'Control', 'Actual Month');
+	Else;
+		vCurrentMonth = cellgets('plan control', 'Control', 'Current Month');
+	EndIf;
+
+	# vCurrentIndex = DIMIX('t_time', vCurrentMonth);
+	vDaysInMonth = ATTRN('t_time_continuous', vCurrentMonth, 'DaysInMonth');
+	vPriorMonth = cellgets('plan control', 'Control', 'Prior Prior Month');
+
+     vCurrentDay = CELLGETS('plan control', 'Control', 'Yesterday No Year');
+
+                vMonthMM= ATTRS(vMonthFlatDim,SUBST(vCurrentMonth,1,3),'MM');
+                vYYYYMM=vCurrentYear|vMonthMM;
+
+
+ELSE;
+
+	vCurrentDay=pDay;
+	vMonthMMM=ATTRS(vTimeFlatDim,pDay,'MMM');
+	vCurrentMonth=vMonthMMM|'-'|SUBST(vCurrentYear,3,2);
+                vMonthMM= ATTRS(vMonthFlatDim,SUBST(vCurrentMonth,1,3),'MM');
+                vYYYYMM=vCurrentYear|vMonthMM;
+
+	
+	IF (( MOD( NUMBR(vCurrentYear), 400 ) = 0 ) % ( ( MOD( NUMBR(vCurrentYear), 4) = 0 ) & ( MOD( NUMBR(vCurrentYear), 100 ) <> 0 ) ));
+		vDaysInMonth=ATTRN(vMonthFlatDim,vMonthMMM,'DaysInMonth-LeapYear');
+	ELSE;
+		vDaysInMonth=ATTRN(vMonthFlatDim,vMonthMMM,'DaysInMonth-NonLeapYear');
+	ENDIF;
+	
+	vPriorMonthMMM=ATTRS(vMonthFlatDim,vMonthMMM,'PriorMMM');
+	vPriorMonth=vPriorMonthMMM|'-'|vCurrentYear;
+
+ENDIF;
+
+#####################################################
+#Create Source Cube View
+#####################################################
+
+##Variables
+
+vSrcCube = 'DOR Summary';
+vSrcView = 'ti_cube_update_dor_summary_dor_drivers_calc_src_'|pCompany|'_'|nTimeNow;
+vSrcSub = vSrcView;
+
+
+IF(VIEWEXISTS(vSrcCube, vSrcView) = 1);
+	VIEWDESTROY(vSrcCube, vSrcView);
+ENDIF;
+
+VIEWCREATE(vSrcCube, vSrcView);
+
+
+DataSourceNameforServer = vSrcCube;
+DataSourceName = vSrcCube;
+DataSourceCubeView = vSrcView;
+
+
+
+#####################################################
+#Create Subsets on Cube Dimensions
+#####################################################
+
+iDimCnt = 1;
+
+While(TABDIM(vSrcCube, iDimCnt)@<>'');
+
+  vSrcDim = TABDIM(vSrcCube, iDimCnt);
+
+#####################################################
+#Add Subsets for Dimensions which need filtering
+#####################################################
+
+	#####Time######
+	#####Filter: Parameter
+
+	IF(vSrcDim @= 'h_orcl_company');
+		IF(SUBSETEXISTS(vSrcDim, vSrcSub) = 0);
+			SUBSETCREATE(vSrcDim, vSrcSub);
+		Else;
+
+		SUBSETDELETEALLELEMENTS(vSrcDim, vSrcSub);
+		ENDIF;
+		
+		IF (pCompany@<>'');
+			IF(ELLEV(vSrcDim,pCompany)>0);
+				vStartIndex = 1;
+				While(vStartIndex<=DIMSIZ(vSrcDim));
+					vElement = DIMNM(vSrcDim, vStartIndex);
+					IF((ELLEV(vSrcDim, vElement) = 0));
+						IF(ELISANC(vSrcDim,pCompany,vElement)=1);
+                          IF(ELISANC(vSrcDim,'DORMGM',vElement)=1);
+                                                                                                    
+							SubsetElementInsert(vSrcDim, vSrcSub, vElement, 1);
+                                                                                                   ENDIF;
+						ENDIF;	
+					ENDIF;
+						vStartIndex = vStartIndex + 1;
+					END;
+			ELSE;
+				SubsetElementInsert(vSrcDim, vSrcSub, pCompany, 1);
+			ENDIF;
+		ELSE;
+			vStartIndex = 1;
+			While(vStartIndex<=DIMSIZ(vSrcDim));
+				vElement = DIMNM(vSrcDim, vStartIndex);
+				IF((ELLEV(vSrcDim, vElement) = 0));
+					SubsetElementInsert(vSrcDim, vSrcSub, vElement, 1);
+				ENDIF;
+					vStartIndex = vStartIndex + 1;
+				END;
+		ENDIF;
+		
+	ELSEIF(vSrcDim @= 'h_orcl_department_summary');
+		IF(SUBSETEXISTS(vSrcDim, vSrcSub) = 0);
+			SUBSETCREATE(vSrcDim, vSrcSub);
+		ENDIF;
+
+		SUBSETDELETEALLELEMENTS(vSrcDim, vSrcSub);
+		
+		IF (pDepartment@<>'');
+			IF(ELLEV(vSrcDim,pDepartment)>0);
+				vStartIndex = 1;
+				While(vStartIndex<=DIMSIZ(vSrcDim));
+					vElement = DIMNM(vSrcDim, vStartIndex);
+					IF((ELLEV(vSrcDim, vElement) = 0));
+						IF(ELISANC(vSrcDim,pDepartment,vElement)=1);
+							SubsetElementInsert(vSrcDim, vSrcSub, vElement, 1);
+						ENDIF;	
+					ENDIF;
+						vStartIndex = vStartIndex + 1;
+					END;
+			ELSE;
+				SubsetElementInsert(vSrcDim, vSrcSub, pDepartment, 1);
+			ENDIF;
+		ELSE;
+			vStartIndex = 1;
+			While(vStartIndex<=DIMSIZ(vSrcDim));
+				vElement = DIMNM(vSrcDim, vStartIndex);
+				IF((ELLEV(vSrcDim, vElement) = 0));
+					SubsetElementInsert(vSrcDim, vSrcSub, vElement, 1);
+				ENDIF;
+					vStartIndex = vStartIndex + 1;
+				END;
+		ENDIF;
+
+
+	ELSEIF(vSrcDim @= 'h_orcl_account_summary');
+		IF(SUBSETEXISTS(vSrcDim, vSrcSub) = 0);
+			SUBSETCREATE(vSrcDim, vSrcSub);
+		ENDIF;
+
+		SUBSETDELETEALLELEMENTS(vSrcDim, vSrcSub);
+		
+		IF (paccount@<>'');
+			IF(ELLEV(vSrcDim,pAccount)>0);
+				vStartIndex = 1;
+				While(vStartIndex<=DIMSIZ(vSrcDim));
+					vElement = DIMNM(vSrcDim, vStartIndex);
+					IF((ELLEV(vSrcDim, vElement) = 0));
+						IF(ELISANC(vSrcDim,paccount,vElement)=1);
+							SubsetElementInsert(vSrcDim, vSrcSub, vElement, 1);
+						ENDIF;	
+					ENDIF;
+					vStartIndex = vStartIndex + 1;
+				END;
+			ELSE;
+				SubsetElementInsert(vSrcDim, vSrcSub, paccount, 1);
+			ENDIF;
+		ELSE;
+			vStartIndex = 1;
+			While(vStartIndex<=DIMSIZ(vSrcDim));
+				vElement = DIMNM(vSrcDim, vStartIndex);
+				IF((ELLEV(vSrcDim, vElement) = 0));
+					SubsetElementInsert(vSrcDim, vSrcSub, vElement, 1);
+				ENDIF;
+					vStartIndex = vStartIndex + 1;
+				END;
+		ENDIF;
+
+
+	ELSEIF(vSrcDim @= 'h_submissions');
+		IF(SUBSETEXISTS(vSrcDim, vSrcSub) = 0);
+			SUBSETCREATE(vSrcDim, vSrcSub);
+		ENDIF;
+
+		SUBSETDELETEALLELEMENTS(vSrcDim, vSrcSub);
+		
+		SubsetElementInsert(vSrcDim, vSrcSub, 'CY Actual', 1);
+
+
+	ELSEIF(vSrcDim @= 't_time');
+		IF(SUBSETEXISTS(vSrcDim, vSrcSub) = 0);
+			SUBSETCREATE(vSrcDim, vSrcSub);
+		ENDIF;
+
+		SUBSETDELETEALLELEMENTS(vSrcDim, vSrcSub);
+		
+		SubsetElementInsert(vSrcDim, vSrcSub, vCurrentDay, 1);
+
+
+	ELSEIF(vSrcDim @= 'm_dor_summary');
+		IF(SUBSETEXISTS(vSrcDim, vSrcSub) = 0);
+			SUBSETCREATE(vSrcDim, vSrcSub);
+		ENDIF;
+
+		SUBSETDELETEALLELEMENTS(vSrcDim, vSrcSub);
+		
+		SubsetElementInsert(vSrcDim, vSrcSub, vDriverMeasure, 1);
+
+
+
+#####################################################
+#Add 0 Level Subsets for All Other Dimensions 
+#####################################################
+
+	ELSE;
+		IF(SUBSETEXISTS(vSrcDim, vSrcSub) = 0);
+			SUBSETCREATE(vSrcDim, vSrcSub);
+		ENDIF;
+
+		SubsetDeleteAllElements(vSrcDim, vSrcSub);
+
+		vStartIndex = 1;
+		While(vStartIndex<=DIMSIZ(vSrcDim));
+			vElement = DIMNM(vSrcDim, vStartIndex);
+			IF((ELLEV(vSrcDim, vElement) = 0));
+				SubsetElementInsert(vSrcDim, vSrcSub, vElement, 1);
+			ENDIF;
+			vStartIndex = vStartIndex + 1;
+		END;
+
+	ENDIF;
+
+#####################################################
+#Assign Subsets to Cube Views
+#####################################################
+
+	VIEWSUBSETASSIGN(vSrcCube, vSrcView, vSrcDim, vSrcSub);
+
+	ViewRowDimensionSet(vSrcCube, vSrcView, vSrcDim, iDimCnt);
+
+	iDimCnt = iDimCnt + 1;
+
+END;
+
+
+#####################################################
+#Zero Out Target View ( which is the same as source view in this case ) 
+#####################################################
+
+# This is required as there are a number of steps in the data tab that skip cells if certain conditions aren't met
+# Miten Bhatt 03/24/2020
+ ViewZeroOut(vSrcCube, vSrcView);
+
+
+
+#####################################################
+#SrcView
+#####################################################
+# Extract Skip Zeroes 1 = exclude zeroes
+# Extract Skip Rule Values 1 = exclude rule values
+# Extract Skip Calc Values 1 = exclude calculated values
+
+ViewExtractSkipZeroesSet (vSrcCube, vSrcView, 0);
+ViewExtractSkipRuleValuesSet (vSrcCube, vSrcView, 1);
+ViewExtractSkipCalcsSet (vSrcCube, vSrcView, 1);
+
+vOldCubeLogChanges = CUBEGETLOGCHANGES(vSrcCube);
+
+
+
+Method1A_Header=1;
+Method1B_Header=1;
+Method2_Header=1;
+# Method3_Header=1;
+Method4_Header=1;
+Method5_Header=1;
+Method6_Header=1;
+Method7_Header=1;
+Method8_Header=1;
+
+EPILOG
+
+
+CUBESETLOGCHANGES(vSrcCube, vOldCubeLogChanges);
+
+
+#######################################
+         #Delete Subsets and Views on Target
+#######################################
+
+ VIEWDESTROY(vSrcCube, vSrcView);
+
+iDimCnt = 1;
+
+WHILE(TABDIM(vSrcCube, iDimCnt)@<>'');
+	vSrcDim = TABDIM(vSrcCube, iDimCnt);
+	SubsetDestroy(vSrcDim, vSrcSub);
+	iDimCnt = iDimCnt + 1;
+END;
+
+ExecuteProcess('cube_update_dor_summary_dor_drivers_roar_race_sports_calc','pDay',pDay);
+
+
