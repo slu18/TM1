@@ -82,7 +82,7 @@ vSrcView = 'ti_cube_update_dor_summary_dor_drivers_calc_src_'|pCompany|'_'|nTime
 vSrcSub = vSrcView;
 
 
-IF(VIEWEXISTS(vSrcCube, vSrcView) = 1);
+IF (VIEWEXISTS(vSrcCube, vSrcView) = 1);
 	VIEWDESTROY(vSrcCube, vSrcView);
 ENDIF;
 

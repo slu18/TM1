@@ -1,0 +1,65 @@
+
+### Build View ###
+
+ If( ViewExists( pCube, cView ) = 1);
+    ViewDestroy( pCube, cView );
+  EndIf;
+  ViewCreate( pCube, cView );
+
+  ViewExtractSkipZeroesSet( pCube, cView, pSuppressZero );
+  ViewExtractSkipCalcsSet( pCube, cView, pSuppressConsol );
+  ViewExtractSkipRuleValuesSet( pCube, cView, pSuppressRules );
+
+  ### Build Subsets and assign to View ###
+
+  # Create subsets for all dimensions if pDimension is set to Every
+  If( Upper( Trim( pDimensions ) ) @= 'EVERY' );
+
+    # Create an empty subset in every dimension of the cube.
+    nDimensionIndex = 1;
+    sDimension = TabDim( pCube, nDimensionIndex );
+
+    While( sDimension @<> '' );
+      If( SubsetExists( sDimension, cSubset ) = 1 );
+        SubsetDeleteAllElements( sDimension, cSubset );
+      Else;
+        SubsetCreate( sDimension, cSubset );
+      EndIf;
+      ViewSubsetAssign( pCube, cView, sDimension, cSubset );
+
+      nDimensionIndex = nDimensionIndex + 1;
+      sDimension = TabDim( pCube, nDimensionIndex );
+    End;
+
+  # Create subsets for specified dimensions only
+  Else;
+
+    nDelimiterIndex = 1;
+    sDimensions = pDimensions;
+
+    While( nDelimiterIndex <> 0 & sDimensions @<> '' );
+      nDelimiterIndex = Scan( pDelimiter, sDimensions  );
+      If( nDelimiterIndex = 0 );
+        sDimension = sDimensions;
+      Else;
+        sDimension = Trim( SubSt( sDimensions, 1, nDelimiterIndex - 1 ) );
+        sDimensions = Trim( SubSt( sDimensions, nDelimiterIndex + Long( pDelimiter ), Long( sDimensions ) ) );
+      EndIf;
+
+      If( DimensionExists( sDimension ) = 1 );
+        If( SubsetExists ( sDimension, cSubset ) = 1 );
+          SubsetDeleteAllElements( sDimension, cSubset );
+        Else;
+          SubsetCreate( sDimension, cSubset );
+        EndIf;
+        ViewSubsetAssign( pCube, cView, sDimension, cSubset );
+      Else;
+        If( pDebug >= 1 );
+          AsciiOutput( sDebugFile, 'Dimension: ' | sDimension | ' does not exist, skipping' );
+        EndIf;
+      EndIf;
+    End;
+
+  EndIf;
+
+EndIf;
