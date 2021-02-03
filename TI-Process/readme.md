@@ -1,1 +1,1 @@
-#learn git via vscode
+# Share useful TI processes from Cognos TM1 development prject
