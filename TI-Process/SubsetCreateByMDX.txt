@@ -1,0 +1,23 @@
+# Result: subset 'test' exists as a static subset and contains a list of elements. Good !
+vDim = 'Department';
+vSubset = 'test';
+
+SubsetDestroy( vDim, vSubset );
+SubsetCreateByMDX( vSubset, '{TM1SubsetAll( [ ' | vDim | ' ] )}' );
+SubsetMDXSet( vDim, vSubset, '' );
+
+# Result: subset 'test' exists as a dynamic subset and contains a list of elements. Empty subset won't get error
+vDim = 'Department';
+vSubset = 'test';
+
+SubsetDestroy( vDim, vSubset );
+SubsetCreateByMDX( vSubset, '{TM1SubsetAll( [ ' | vDim | ' ] )}', vDim );
+# SubsetMDXSet( vDim, vSubset, '' );
+
+# Result: subset 'test' exists as a dynamic subset and contains a list of elements. Good !
+vDim = 'Department';
+vSubset = 'test';
+
+SubsetDestroy( vDim, vSubset );
+SubsetCreateByMDX( vSubset, '{TM1SubsetAll( [ ' | vDim | ' ] )}' );
+# SubsetMDXSet( vDim, vSubset, '' );
