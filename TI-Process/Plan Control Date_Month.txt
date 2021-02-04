@@ -1,0 +1,277 @@
+# Server Name
+
+	vServerName='cognostm1';
+	CELLPUTS(vServerName, vControlCube,'Control','Server Name');
+
+
+# Current Day 
+
+	vToday = TODAY( 1);
+
+	vCurrentDay = cellgets( vControlCube, 'control', 'Current Day');
+IF ( (vToday @<> vCurrentDay) % ( pForceUpdate = 1));
+		vCurrentDay = vToday;
+		
+		cellputs( vToday, vControlCube, 'Control', 'Current Day');
+
+# Prior Day 
+
+		vPriorDate = DATE(Dayno(vToday)-1, 1);
+
+		cellputs( vPriorDate, vControlCube, 'Control', 'Prior Day');
+
+# Current Day No Year 
+
+		vCurrentDayNoYear=NumberToStringEx( DAYNO(vToday) + 21916, 'd', '', '' )|'-'|ATTRS(vMonthFlatDim,NUMBERTOSTRING(MONTH(vToday)),'MMM');
+		cellputs( vCurrentDayNoYear, vControlCube,'Control','Current Day No Year');
+
+# Yesterday No Year 
+
+		vYesterDayNoYear=NumberToStringEx( DAYNO(vPriorDate) + 21916, 'd', '', '' )|'-'|ATTRS(vMonthFlatDim,NUMBERTOSTRING(MONTH(vPriorDate)),'MMM');
+		cellputs( vYesterDayNoYear, vControlCube, 'Control','Yesterday No Year');
+
+# Current Week
+		
+		vCurrentWeek=NumberToStringEx( DAYNO(vToday) + 21916, 'ww', '', '' );
+
+		cellputs( vCurrentWeek , vControlCube, 'Control', 'Current Week');
+
+# Current Year
+		
+		vCurrentYear= NumberToString(Year(vToday));
+	
+		cellputs( vCurrentYear , vControlCube, 'Control', 'Current Year');
+
+# Prior Year
+		
+		vPriorYear= NumberToString(Year(vToday)-1);
+	
+		cellputs( vPriorYear , vControlCube, 'Control', 'Prior Year');
+		
+# Next Year
+		# This value isn't put on the control panel yet. It's used in calculations below
+		vNextYear= NumberToString(Year(vToday)+1);
+
+# Current Month
+
+		vCurrentMonth=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'MMM')|'-'|SUBST(vCurrentYear,3,2);
+		
+		cellputs( vCurrentMonth , vControlCube, 'Control', 'Current Month');
+
+# Current Month Prior Year
+
+		vCurrentMonthPriorYear=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'MMM')|'-'|SUBST(vPriorYear,3,2);
+		
+		cellputs( vCurrentMonthPriorYear , vControlCube, 'Control', 'Current Month Prior Year');
+
+
+# Current Generic Month
+
+		vCurrentGenericMonth=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'MMM');
+		cellputs( vCurrentGenericMonth , vControlCube, 'Control', 'Current Generic Mth');
+
+# Current Quarter
+
+	vCurrentQuarter=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'Quarter')|'-'|SUBST(vCurrentYear,3,2);
+	cellputs( vCurrentQuarter , vControlCube, 'Control', 'Current Quarter');
+	
+# Current Generic Quarter
+
+	vCurrentGenericQuarter=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'Quarter');
+	cellputs( vCurrentGenericQuarter , vControlCube, 'Control', 'Current Generic QTR');
+
+# Current YTD Month
+
+	vCurrentYTDMonth=vCurrentMonth|' YTD';
+	cellputs( vCurrentYTDMonth , vControlCube, 'Control', 'Current YTD Month');
+	
+
+# Prior Month
+
+	IF (vCurrentGenericMonth@='Jan');
+		vPriorMonth=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'PriorMMM')|'-'|vPriorYear;
+	ELSE;
+		vPriorMonth=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'PriorMMM')|'-'|vCurrentYear;
+	ENDIF;
+
+	cellputs( vPriorMonth , vControlCube, 'Control', 'Prior Month');
+
+# Prior YTD Month	
+
+	vPriorYTDMonth=vPriorMonth|' YTD';
+	cellputs( vPriorYTDMonth , vControlCube, 'Control', 'Prior YTD Month');
+
+# Current QTD Quarter
+
+	vCurrentQTDQuarter=vCurrentMonth|' QTD';
+	cellputs( vCurrentQTDQuarter , vControlCube, 'Control', 'Current QTD Quarter');
+	
+# Prior Prior Month 
+
+	IF ((vCurrentGenericMonth@='Jan')%(vCurrentGenericMonth@='Feb'));
+		vPriorPriorMonth=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'PriorPriorMMM')|'-'|vPriorYear;
+	ELSE;
+		vPriorPriorMonth=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'PriorPriorMMM')|'-'|vCurrentYear;
+	ENDIF;
+	
+	cellputs( vPriorPriorMonth , vControlCube, 'Control', 'Prior Prior Month');
+
+	
+# Next Month 
+
+	IF (vCurrentGenericMonth@='Dec');
+		vNextMonth=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'NextMMM')|'-'|vNextYear;
+	ELSE;
+		vNextMonth=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'NextMMM')|'-'|vCurrentYear;
+	ENDIF;
+	
+	cellputs( vNextMonth , vControlCube, 'Control', 'Next Month');	
+	
+
+# Prior Quarter 
+
+	IF ((vCurrentGenericMonth@='Jan')%(vCurrentGenericMonth@='Feb')%(vCurrentGenericMonth@='Mar'));
+		vPriorQuarter=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'PriorQuarter')|'-'|vPriorYear;
+	ELSE;
+		vPriorQuarter=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'PriorQuarter')|'-'|vCurrentYear;
+	ENDIF;
+	
+	cellputs( vPriorQuarter , vControlCube, 'Control', 'Prior Quarter');	
+
+
+# Next Quarter 
+
+	IF ((vCurrentGenericMonth@='Oct')%(vCurrentGenericMonth@='Nov')%(vCurrentGenericMonth@='Dec'));
+		vNextQuarter=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'NextQuarter')|'-'|vNextYear;
+	ELSE;
+		vNextQuarter=ATTRS(vMonthFlatDim,NumberToString(Month(vToday)),'NextQuarter')|'-'|vNextYear;
+	ENDIF;
+	
+	cellputs( vNextQuarter , vControlCube, 'Control', 'Next Quarter');	
+
+# Actual Month
+
+	vActualMonth=vPriorMonth;
+	
+	cellputs( vActualMonth , vControlCube, 'Control', 'Actual Month');	
+
+# Force Feeder
+	vForceFeeder=1;
+	
+	cellputn( vForceFeeder , vControlCube, 'Control', 'Force Feeder');	
+		
+ENDIF;
+	
+# Current Day of the week
+
+	vTodayDOW=Mod(Dayno(vToday)+ 21915, 7);
+
+	IF (vTodayDOW=0);
+		vTodayDayOfWeek='Sunday';
+	ELSEIF (vTodayDOW=1);
+		vTodayDayOfWeek='Monday';
+	ELSEIF (vTodayDOW=2);
+		vTodayDayOfWeek='Tuesday';
+	ELSEIF (vTodayDOW=3);
+		vTodayDayOfWeek='Wednesday';
+	ELSEIF (vTodayDOW=4);
+		vTodayDayOfWeek='Thursday';
+	ELSEIF (vTodayDOW=5);
+		vTodayDayOfWeek='Friday';
+	ELSEIF (vTodayDOW=6);
+		vTodayDayOfWeek='Saturday';
+	ENDIF;
+
+
+	CELLPUTS(vTodayDayOfWeek,vControlCube,'Control','Current Day of Week');
+	
+	CELLPUTN(vTodayDOW,vControlCube,'Control','Current Day of Week Num');
+
+
+
+# Prior Day of the week
+
+	vYesterdayDOW=Mod(Dayno(vToday) -1+ 21915, 7);
+
+
+	IF (vYesterdayDOW=0);
+		vYesterdayDayOfWeek='Sunday';
+	ELSEIF (vYesterdayDOW=1);
+		vYesterdayDayOfWeek='Monday';
+	ELSEIF (vYesterdayDOW=2);
+		vYesterdayDayOfWeek='Tuesday';
+	ELSEIF (vYesterdayDOW=3);
+		vYesterdayDayOfWeek='Wednesday';
+	ELSEIF (vYesterdayDOW=4);
+		vYesterdayDayOfWeek='Thursday';
+	ELSEIF (vYesterdayDOW=5);
+		vYesterdayDayOfWeek='Friday';
+	ELSEIF (vYesterdayDOW=6);
+		vYesterdayDayOfWeek='Saturday';
+	ENDIF;
+
+
+	CELLPUTS(vYesterdayDayOfWeek,vControlCube,'Control','Yesterday Day of Week');
+	
+	CELLPUTN(vYesterdayDOW,vControlCube,'Control','Yesterday Day of Week Num');
+
+
+
+
+
+# Current Year Leap Year 
+
+vCurrentYearNum=NUMBR(vCurrentYear);
+
+If( ( MOD( vCurrentYearNum, 400 ) = 0 ) % ( ( MOD( vCurrentYearNum, 4) = 0 ) & ( MOD( vCurrentYearNum, 100 ) <> 0 ) ));
+	vCurrentYearLeapYear = 'Y';
+	CELLPUTS(vCurrentYearLeapYear,vControlCube,'Control','Current Year Leap Year');
+ELSE;
+	vCurrentYearLeapYear = 'N';
+	CELLPUTS(vCurrentYearLeapYear,vControlCube,'Control','Current Year Leap Year');
+ENDIF;
+
+
+
+# Prior Year Leap Year 
+
+vPriorYearNum=NUMBR(vPriorYear);
+
+If( ( MOD( vPriorYearNum, 400 ) = 0 ) % ( ( MOD( vPriorYearNum, 4) = 0 ) & ( MOD( vPriorYearNum, 100 ) <> 0 ) ));
+	vPriorYearLeapYear = 'Y';
+	CELLPUTS(vPriorYearLeapYear,vControlCube,'Control','Prior Year Leap Year');
+ELSE;
+	vPriorYearLeapYear = 'N';
+	CELLPUTS(vPriorYearLeapYear,vControlCube,'Control','Prior Year Leap Year');
+ENDIF;
+
+
+
+# Current Month Num
+
+
+
+		vCurrentMonthNum=   Month(vToday);
+
+		
+		cellputn( vCurrentMonthNum , vControlCube, 'Control', 'Current Month Num');
+
+
+
+
+
+
+
+#Yesterday Month Num
+
+          vYesterdayMonthNum=Month(vPriorDate);
+
+         CELLPUTN( vCurrentMonthNum , vControlCube, 'Control', 'Yesterday Month Num');
+
+
+#Yesterday Month 
+
+          vYesterdayMonth=ATTRS(vMonthFlatDim,NumberToString(Month(vPriorDate)),'MMM');
+
+
+         CELLPUTS( vYesterdayMonth , vControlCube, 'Control', 'Yesterday Month');
